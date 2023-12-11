@@ -4,6 +4,8 @@ import requests
 from eth_account import Account
 import eth_abi
 from web3 import Web3
+from cryptography.fernet import Fernet
+
 
 # Blockchain RPC Connection
 w3 = Web3(Web3.HTTPProvider("https://rpc.sepolia.org"))
@@ -11,19 +13,23 @@ w3 = Web3(Web3.HTTPProvider("https://rpc.sepolia.org"))
 # Contract address for patient data
 PatientDataContractAddress = "0x9085FFe90E35f854149190d3b9Daa804a62525FD"
 
-# Function to hash metadata
-def hash_metadata(metadata):
-    # Convert the metadata dictionary to a JSON string
-    metadata_json = json.dumps(metadata, sort_keys=True)
-    # Create a SHA-256 hash of the JSON string
-    return hashlib.sha256(metadata_json.encode()).hexdigest()
+# Generate a key for encryption and decryption
+# You should store this key securely
+key = Fernet.generate_key()
+cipher_suite = Fernet(key)
+
+def encrypt_data(data):
+    json_data = json.dumps(data)
+    encrypted_data = cipher_suite.encrypt(json_data.encode())
+    return encrypted_data
 
 # Load patient data from the JSON file
 with open('patient_data.json', 'r') as file:
     patient_data = json.load(file)
 
-# Hash the metadata
-hashed_metadata = hash_metadata(patient_data)
+# Encrypt the patient data
+encrypted_patient_data = encrypt_data(patient_data)
+
 
 # Function to add data to IPFS using direct API call
 def add_to_ipfs(data):
@@ -32,8 +38,8 @@ def add_to_ipfs(data):
         raise Exception(f"IPFS add failed: {response.text}")
     return response.json()['Hash']
 
-# Add the hashed metadata to IPFS
-ipfs_hash = add_to_ipfs(hashed_metadata.encode())
+# Add the encrypted patient data to IPFS
+ipfs_hash = add_to_ipfs(encrypted_patient_data)
 
 # Output the IPFS hash
 print(f"IPFS Hash: {ipfs_hash}")
