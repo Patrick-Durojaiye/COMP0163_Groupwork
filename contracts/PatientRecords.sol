@@ -5,17 +5,11 @@ interface ERC721 /* is ERC165 */ {
 
     event Transfer(address indexed _from, address indexed _to, uint256 indexed _tokenId);
 
-    event Approval(address indexed _owner, address indexed _approved, uint256 indexed _tokenId);
-
-    event ApprovalForAll(address indexed _owner, address indexed _operator, bool _approved);
-
     function balanceOf(address _owner) external view returns (uint256);
 
     function ownerOf(uint256 _tokenId) external view returns (address);
 
     function transferFrom(address _from, address _to, uint256 _tokenId) external returns (bool);
-
-    function approve(address _approved, uint256 _tokenId) external returns(bool);
 
 }
 
@@ -45,14 +39,14 @@ contract PatientRecords is ERC721, ERC721Metadata {
     mapping(address=>uint256) public balances;
     // Mapping token Id's to owners
     mapping(uint256=>address) public tokenId_owner;
-    // Mapping of allowances
-    mapping(address=>mapping(address=>uint256)) public allowances;
     // Address of the owner of the contract 
     address owner;
     //  Mapps the token ID to the tokenURI
     mapping(uint256=>string) public _tokenURI;
     // Event for when the ownership of the contract changes
     event OwnershipChange(address _oldOwner, address _newOwner);
+    // Event for when a new token is minted
+    event NewMint(address holder, uint256 tokenId);
 
     constructor(string memory __name, string memory __symbol){
         owner = msg.sender;
@@ -67,10 +61,13 @@ contract PatientRecords is ERC721, ERC721Metadata {
         _;
     }
 
-    function mint(address _to) public onlyOwner{
+    function mint(address _to, string memory uri) public onlyOwner{
         // Increases total supply
         _totalSupply+=1;
-        transferFrom(address(0), _to, _totalSupply);
+        balances[_to]+=1;
+        tokenId_owner[_totalSupply]= _to;
+        setTokenURI(uri, _totalSupply);
+        emit NewMint(_to, _totalSupply);
     }
 
     function transferFrom(address _from, address _to, uint256 _tokenId) public override onlyOwner returns (bool) {
@@ -106,13 +103,6 @@ contract PatientRecords is ERC721, ERC721Metadata {
     function ownerOf(uint256 _tokenId) public view returns (address){
         // Returns the address of owner of the token Id holder
         return tokenId_owner[_tokenId];
-    }
-
-    function approve(address _approved, uint256 _tokenId) external returns (bool) {  
-        //     
-        allowances[msg.sender][_approved] = _tokenId;
-        emit Approval(msg.sender, _approved, _tokenId);
-        return true;
     }
 
     function setTokenURI(string memory uri, uint256 _tokenId) public onlyOwner {
