@@ -5,7 +5,12 @@ from eth_account import Account
 import eth_abi
 from web3 import Web3
 from cryptography.fernet import Fernet
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+private_key = os.getenv("PRIVATE_KEY")
+address = os.getenv("ADDRESS")
 
 # Blockchain RPC Connection
 w3 = Web3(Web3.HTTPProvider("https://rpc.sepolia.org"))
@@ -59,7 +64,7 @@ def mint_patient_data(acct:Account, address, ipfs_hash, private_key):
     except:
         print("Tx lost in mempool")
 
-def run(acct: Account, address, ipfs_hash, private_key):
+def run(address, private_key):
     # Load patient data from the JSON file
     with open('patient_data.json', 'r') as file:
         patient_data = json.load(file)
@@ -75,5 +80,7 @@ def run(acct: Account, address, ipfs_hash, private_key):
 
     # Add the encrypted patient data to IPFS
     ipfs_hash = "ipfs://" + str(add_to_ipfs(encrypted_patient_data))
-    
+    acct = Account.from_key(private_key)
     mint_patient_data(acct=acct, address=address, ipfs_hash=ipfs_hash, private_key=private_key)
+
+run(address=address,private_key=private_key)
