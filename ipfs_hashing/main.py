@@ -1,4 +1,3 @@
-import hashlib
 import json
 import requests
 from eth_account import Account
@@ -9,6 +8,7 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
+JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJkM2I2NzdiZi05MzEzLTQwY2YtOTFmMi1mZWVkMDRiZWMwMGQiLCJlbWFpbCI6ImdlcmdlbHlzem9yYXRoQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImlkIjoiRlJBMSIsImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxfSx7ImlkIjoiTllDMSIsImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxfV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiJjMTllYjk3NTRlNDY0OWMxZjEzOCIsInNjb3BlZEtleVNlY3JldCI6IjJhMmQwY2EwNTczMWQ5MzExZmI3MDQwZTUxYWZkYjMxYzY4YjYyY2Y2Yzk1MGQ2ODM1OTM4MzM3ZWEzOTRiYmEiLCJpYXQiOjE3MDIzODYyMTd9.jPK7PZ355FvvaGCbAJjIFou903jr4GkLSjidhG8bkys'
 private_key = os.getenv("PRIVATE_KEY")
 address = os.getenv("ADDRESS")
 
@@ -31,12 +31,41 @@ def encrypt_data(data):
 def decrypt_data(encrypted_data):
     return cipher_suite.decrypt(encrypted_data)
 
-# Function to add data to IPFS using direct API call
-def add_to_ipfs(data):
-    response = requests.post('http://127.0.0.1:5001/api/v0/add', files={'file': ('metadata.json', data)})
-    if response.status_code != 200:
-        raise Exception(f"IPFS add failed: {response.text}")
-    return response.json()['Hash']
+# Function to add data to IPFS using Pinata API call
+def pin_file_to_ipfs(file_data):
+    url = "https://api.pinata.cloud/pinning/pinFileToIPFS"
+
+    # Prepare headers
+    headers = {
+        'Authorization': f'Bearer {JWT}'
+    }
+
+
+# Open the file in binary mode
+    files = {
+        'file': ('path', file_data)
+    }
+
+    # Add metadata and options
+    pinata_metadata = {
+        'name': 'File name'
+    }
+    pinata_options = {
+        'cidVersion': 0
+    }
+
+    payload = {
+        'pinataMetadata': json.dumps(pinata_metadata),
+        'pinataOptions': json.dumps(pinata_options)
+    }
+
+    # Make the POST request
+    try:
+        response = requests.post(url, files=files, data=payload, headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.HTTPError as err:
+        raise SystemExit(err)
 
 # Builds the transaction data to mint the token
 def build_mint_data(address, ipfs_hash):
@@ -79,7 +108,7 @@ def run(address, private_key):
     }
 
     # Add the encrypted patient data to IPFS
-    ipfs_hash = "ipfs://" + str(add_to_ipfs(encrypted_patient_data))
+    ipfs_hash = "ipfs://" + str(pin_file_to_ipfs(encrypted_patient_data))
     acct = Account.from_key(private_key)
     mint_patient_data(acct=acct, address=address, ipfs_hash=ipfs_hash, private_key=private_key)
 
