@@ -41,7 +41,7 @@ def pin_file_to_ipfs(file_data):
     }
 
 
-# Open the file in binary mode
+    #Open the file in binary mode
     files = {
         'file': ('path', file_data)
     }
@@ -63,7 +63,9 @@ def pin_file_to_ipfs(file_data):
     try:
         response = requests.post(url, files=files, data=payload, headers=headers)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        hash = data['IpfsHash']
+        return hash
     except requests.exceptions.HTTPError as err:
         raise SystemExit(err)
 
@@ -77,12 +79,12 @@ def mint_patient_data(acct:Account, address, ipfs_hash, private_key):
     data = build_mint_data(address=address, ipfs_hash=ipfs_hash)
     tx = {
         "from": w3.toChecksumAddress(acct.address),
-        "to": w3.toChecksumAddress(address),
+        "to": w3.toChecksumAddress(PatientDataContractAddress),
         "value" : w3.toWei(0,'ether'),
         "data": data,
         "chainId" : 11155111,
-        "gas": 28363240,
-        "gasPrice": w3.toWei("800","gwei"),
+        "gas": 1370959,
+        "gasPrice": w3.toWei("70","gwei"),
         "nonce": w3.eth.get_transaction_count(acct.address)
     }
 
@@ -102,7 +104,7 @@ def run(address, private_key):
     encrypted_patient_data = encrypt_data(patient_data)
 
     metadata = {
-        "Address": "0xxxxx",
+        "Address": "0x4CA6a4e5553b2d1681386B90e00E76f393c382E1",
         "EMR Data": encrypt_data,
         "Hospital": "London National Hospital"
     }
