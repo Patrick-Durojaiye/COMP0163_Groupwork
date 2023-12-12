@@ -23,13 +23,8 @@ def encrypt_data(data):
     encrypted_data = cipher_suite.encrypt(json_data.encode())
     return encrypted_data
 
-# Load patient data from the JSON file
-with open('patient_data.json', 'r') as file:
-    patient_data = json.load(file)
-
-# Encrypt the patient data
-encrypted_patient_data = encrypt_data(patient_data)
-
+def decrypt_data(encrypted_data):
+    return cipher_suite.decrypt(encrypted_data)
 
 # Function to add data to IPFS using direct API call
 def add_to_ipfs(data):
@@ -37,15 +32,6 @@ def add_to_ipfs(data):
     if response.status_code != 200:
         raise Exception(f"IPFS add failed: {response.text}")
     return response.json()['Hash']
-
-# Add the encrypted patient data to IPFS
-ipfs_hash = add_to_ipfs(encrypted_patient_data)
-
-# Output the IPFS hash
-print(f"IPFS Hash: {ipfs_hash}")
-
-# The IPFS hash can be used as the token URI in the smart contract
-token_uri = f"ipfs://{ipfs_hash}"
 
 # Builds the transaction data to mint the token
 def build_mint_data(address, ipfs_hash):
@@ -73,3 +59,21 @@ def mint_patient_data(acct:Account, address, ipfs_hash, private_key):
     except:
         print("Tx lost in mempool")
 
+def run(acct: Account, address, ipfs_hash, private_key):
+    # Load patient data from the JSON file
+    with open('patient_data.json', 'r') as file:
+        patient_data = json.load(file)
+    
+    # Encrypt the patient data
+    encrypted_patient_data = encrypt_data(patient_data)
+
+    metadata = {
+        "Address": "0xxxxx",
+        "EMR Data": encrypt_data,
+        "Hospital": "London National Hospital"
+    }
+
+    # Add the encrypted patient data to IPFS
+    ipfs_hash = "ipfs://" + str(add_to_ipfs(encrypted_patient_data))
+    
+    mint_patient_data(acct=acct, address=address, ipfs_hash=ipfs_hash, private_key=private_key)
